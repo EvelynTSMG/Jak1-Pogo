@@ -2743,6 +2743,7 @@
                   (set! (-> *progress-carousell* direction) #t)
                   (set! (-> *progress-carousell* transition) #f)
                   (set! (-> *progress-carousell* x-offset) 0)
+                  (set! (-> *progress-carousell* current-carousell-desc) #f)
                   (case (-> options (-> obj option-index) option-type)
                     (((game-option-type display-mode)) (set! (-> *progress-carousell* current-carousell) *carousell-display-mode*))
                     (((game-option-type msaa)) (set! (-> *progress-carousell* current-carousell) *carousell-msaa*))
@@ -3352,7 +3353,7 @@
                                             (lookup-text! *common-text* (text-id 16x9) #f)))))
                   )
 
-                  (when (and (not set-desc?) (-> options index desc))
+                  (when (and (not set-desc?) (nonzero? (-> options index desc)))
                     (format (clear option-desc) (lookup-text! *common-text* (-> options index desc) #f))
                     (set! set-desc? #t)
                   )
@@ -3457,7 +3458,7 @@
                     )
                   )
 
-                  (when (and (not set-desc?) (-> options index desc) (= (-> obj option-index) index))
+                  (when (and (not set-desc?) (nonzero? (-> options index desc)) (= (-> obj option-index) index))
                     (format (clear option-desc) (lookup-text! *common-text* (-> options index desc) #f))
                     (set! set-desc? #t)
                   )
