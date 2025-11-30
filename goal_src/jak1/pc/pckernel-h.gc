@@ -216,6 +216,7 @@
    (reset-misc (_type_ symbol) int)
    (reset-camera (_type_ symbol) int)
    (reset-extra (_type_ symbol) int)
+   (reset-mod (_type_ symbol symbol) none)
    (print-debug-misc (_type_) object)
    (draw (_type_ dma-buffer) object)
    (draw-memory (_type_ dma-buffer) symbol)
@@ -306,6 +307,7 @@
   (reset-ps2 obj call-handlers)
   (reset-misc obj call-handlers)
   (reset-extra obj call-handlers)
+  (reset-mod obj call-handlers #f)
   0)
 
 (defmethod reset-gfx ((obj pc-settings) (call-handlers symbol))
@@ -410,6 +412,11 @@
 (defmethod reset-extra ((obj pc-settings) (call-handlers symbol))
   "Set the default goodies settings"
   0)
+
+(defmethod reset-mod ((obj pc-settings) (call-handlers symbol) (nightmare-mode symbol))
+  "Set the default mod settings"
+  (none)
+)
 
 (defmacro with-pc (&rest body)
   "encapsulates the code around PC-specific checks"

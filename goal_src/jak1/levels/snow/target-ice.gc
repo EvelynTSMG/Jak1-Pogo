@@ -22,8 +22,12 @@
         (remove-exit)
         (go target-duck-stance))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
-        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))
+      )
       ;; og:preserve-this - High FPS Fix
       (if (and (recently-pressed? circle) (can-feet?)) (go target-attack))
       (if (can-hands? #t) (go target-running-attack))
@@ -115,9 +119,23 @@
         (remove-exit)
         (go target-walk))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? l1 r1)
-               (and (time-elapsed? (-> *TARGET-bank* wheel-timeout) (-> self control unknown-dword30))
-                    (and (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0) (can-wheel?))))
+      (when (and
+            (neq? (-> *pc-settings* mod rolljump-ability) 'never)
+            (or
+              (and
+                (= (-> *pc-settings* mod rolljump-ability) 'buffered)
+                (-> self last-roll-input)
+                (not (time-elapsed? (-> self last-roll-input) (-> *TARGET-bank* wheel-buffer-time)))
+              )
+              (recently-pressed? l1 r1)
+            )
+            (and
+              (time-elapsed? (-> *TARGET-bank* wheel-timeout) (-> self control roll-done-time))
+              (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
+              (can-wheel?)
+            )
+          )
+        (set! (-> self last-roll-input) (the-as time-frame #f))
         (go target-wheel))
       (when (and (cpad-hold? (-> self control unknown-cpad-info00 number) l1 r1) (can-duck?))
         (target-effect-exit)
@@ -131,8 +149,12 @@
         (remove-exit)
         (go target-ice-stance))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
-        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))
+      )
       ;; og:preserve-this - High FPS Fix
       (if (and (recently-pressed? circle) (can-feet?)) (go target-attack))
       (if (can-hands? #t) (go target-running-attack))

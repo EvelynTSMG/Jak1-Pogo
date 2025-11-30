@@ -72,9 +72,7 @@
                         (let ((a0-3 (entity-actor-lookup (-> self entity) 'alt-actor 0)))
                           (or (not a0-3) (not (logtest? (-> a0-3 extra perm status) (entity-perm-status dead)))))))
           (when (!= (-> self index) 6)
-            (while (and *target*
-                        (logtest? (-> *target* control unknown-surface00 flags) (surface-flags jump))
-                        (not (logtest? (-> *target* control status) (cshape-moving-flags onsurf))))
+            (while (and *target* (target-in-air?-mod))
               (suspend))
             (set-time! (-> self state-time))
             (process-grab? *target*)

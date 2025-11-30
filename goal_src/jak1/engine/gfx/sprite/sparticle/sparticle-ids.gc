@@ -1,0 +1,6 @@
+;;-*-Lisp-*-
+(in-package goal)
+
+(defenum part-ids
+  (jungle-eco-beam-impact 825)
+)

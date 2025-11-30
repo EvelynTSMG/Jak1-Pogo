@@ -265,14 +265,14 @@
         (let ((f0-18 (vector-length a0-36))) f0-18 (let ((t2-4 f0-18)) (s4-6 s3-6 s2-6 s1-6 s0-6 sv-160 sv-176 t2-4)))))
     (format arg1
             "~0ky:~,,2M t:~d cy: ~,,2M my: ~,,2M impv:~,,2M "
-            (-> arg0 control unknown-vector52 y)
+            (-> arg0 control last-grounded-position y)
             (- (current-time) (-> arg0 control unknown-dword11))
-            (- (-> arg0 control trans y) (-> arg0 control unknown-vector52 y))
+            (- (-> arg0 control trans y) (-> arg0 control last-grounded-position y))
             (- (-> arg0 control unknown-vector111 y) (-> arg0 control unknown-vector110 y))
             (-> arg0 control ground-impact-vel))
     (format arg1
             "~0k~Tcd: ~,,2M md:~,,2M~%"
-            (vector-xz-length (vector-! (new-stack-vector0) (-> arg0 control trans) (-> arg0 control unknown-vector52)))
+            (vector-xz-length (vector-! (new-stack-vector0) (-> arg0 control trans) (-> arg0 control last-grounded-position)))
             (vector-xz-length (vector-! (new-stack-vector0) (-> arg0 control unknown-vector111) (-> arg0 control unknown-vector110))))
     (format arg1
             "~0kbend b:~F t:~F s:~F~%"
@@ -365,7 +365,7 @@
     (/ f30-0 (the float gp-0))))
 
 (defbehavior turn-to-vector target ((arg0 vector) (arg1 float))
-  (let ((gp-0 (new-stack-vector0)))
+  (let ((gp-0 (new-stack-vector0)) (ac (target-get-air-control)))
     (warp-vector-into-surface! gp-0 arg0 (-> self control local-normal))
     (set! (-> self control unknown-float13) (-> self control unknown-float12))
     (set! (-> self control unknown-float11) (-> self control unknown-float10))
@@ -380,7 +380,7 @@
     (let ((f0-6 (atan (-> gp-0 x) (-> gp-0 z))))
       (set! (-> self control unknown-float12) arg1)
       (set! (-> self control unknown-float10) f0-6))
-    (let ((f0-8 (* arg1 (-> self control unknown-surface01 target-speed))))
+    (let ((f0-8 (* arg1 ac (-> self control unknown-surface01 target-speed))))
       (set! (-> self control unknown-vector01 quad) (-> (vector-normalize! gp-0 f0-8) quad))))
   (let ((gp-1 (new-stack-vector0)))
     (vector-matrix*! gp-1 (-> self control unknown-vector01) (-> self control unknown-matrix01))
@@ -542,7 +542,15 @@
   0)
 
 (defbehavior do-rotations1 target ()
-  (rotate-toward-orientation! (-> self control) (-> self control dir-targ) 0.0 (-> self control unknown-surface01 tiltv)))
+  (let ((ac (target-get-air-control)))
+    (rotate-toward-orientation!
+      (-> self control)
+      (-> self control dir-targ)
+      0.0
+      (* ac (-> self control unknown-surface01 tiltv))
+    )
+  )
+)
 
 (defbehavior do-rotations2 target ()
   (let ((gp-0 (vector-z-quaternion! (new-stack-vector0) (-> self control dir-targ)))
@@ -560,7 +568,8 @@
            (s4-0 (forward-up-nopitch->quaternion (new-stack-quaternion0) gp-0 s3-0))
            (s3-1 (forward-up-nopitch->quaternion (new-stack-quaternion0) s5-0 s3-0))
            (f0-2 (acos (vector-dot gp-0 s5-0)))
-           (f1-2 (* (-> self control unknown-surface01 turnvv) (seconds-per-frame))))
+           (air-control-multiplier (target-get-air-control))
+           (f1-2 (* (-> self control unknown-surface01 turnvv) air-control-multiplier (seconds-per-frame))))
       (quaternion-slerp! (-> self control dir-targ)
                          s4-0
                          s3-1
@@ -586,12 +595,15 @@
                     (-> self control unknown-matrix01 vector 2)
                     (meters 2)
                     (new 'static 'rgba :r #xff :b #xff :a #x80))
-  (rotate-toward-orientation! (-> self control) (-> self control dir-targ) (-> self control unknown-surface01 turnv) 0.0)
+  (let ((ac (target-get-air-control)))
+    (rotate-toward-orientation! (-> self control) (-> self control dir-targ) (* ac (-> self control unknown-surface01 turnv)) 0.0)
+  )
   (quaternion-slerp! (-> self control quat)
                      (-> self control unknown-quaternion00)
                      (-> self control unknown-quaternion01)
                      (-> self control unknown-float00))
-  (target-compute-slopes (-> self control dynam gravity-normal)))
+  (target-compute-slopes (-> self control dynam gravity-normal))
+)
 
 (defbehavior level-setup target ()
   (let ((gp-0 (-> self current-level)))
@@ -611,7 +623,7 @@
   (cond
     ((logtest? (-> self control status) (cshape-moving-flags onsurf))
      (set-time! (-> self control unknown-dword11))
-     (set! (-> self control unknown-vector52 quad) (-> self control trans quad))
+     (set! (-> self control last-grounded-position quad) (-> self control trans quad))
      (if (and (>= (-> self control coverage) 1.0)
               (not (logtest? (-> self control status) (cshape-moving-flags t-act on-water)))
               (logtest? (-> self control status) (cshape-moving-flags onground)))
@@ -620,8 +632,8 @@
     (else
      (let ((v1-25 (-> self control trans)))
        (when (logtest? (-> self control old-status) (cshape-moving-flags onsurf))
-         (set! (-> self control unknown-vector110 quad) (-> self control unknown-vector52 quad))
-         (set! (-> self control unknown-vector111 quad) (-> self control unknown-vector52 quad)))
+         (set! (-> self control unknown-vector110 quad) (-> self control last-grounded-position quad))
+         (set! (-> self control unknown-vector111 quad) (-> self control last-grounded-position quad)))
        (set! (-> self control unknown-vector111 x) (-> v1-25 x))
        (set! (-> self control unknown-vector111 z) (-> v1-25 z))
        (if (< (vector-dot (-> self control dynam gravity-normal)
@@ -778,7 +790,7 @@
              (set-time! (-> self control rider-time))
              (move-to-point! (-> self control) a1-6))
            (set! (-> self control unknown-float110) 0.0)
-           (set! (-> self control unknown-vector52 quad) (-> self control trans quad))
+           (set! (-> self control last-grounded-position quad) (-> self control trans quad))
            (set-time! (-> self control unknown-dword40)))))
       (forward-up-nopitch->quaternion (-> self control dir-targ) gp-1 (-> self control dynam gravity-normal))))
   (set-quaternion! (-> self control) (-> self control dir-targ))
@@ -844,7 +856,7 @@
           (else
            (set! (-> self control unknown-int21) (the-as int #t))
            (move-to-point! (-> self control) (vector-! (new 'stack-no-clear 'vector) s5-0 (-> self control unknown-vector91)))
-           (set! (-> self control unknown-vector52 quad) (-> self control trans quad))))))
+           (set! (-> self control last-grounded-position quad) (-> self control trans quad))))))
     (let ((s5-3 (vector-cross! (-> self control unknown-vector101) gp-0 (-> self control dynam gravity-normal))))
       (if (>= 0.0 (vector-dot s5-3 (vector-z-quaternion! (new 'stack-no-clear 'vector) (-> self control unknown-quaternion00))))
         (vector-negate! s5-3 s5-3))
@@ -1267,8 +1279,8 @@
   (set! (-> self water) (new 'process 'water-control self 9 0.0 8192.0 2048.0))
   (set! (-> self water flags) (water-flags wt04 wt05 wt06 wt07 wt22))
   (reset-target-state #t)
-  (set! (-> self control unknown-vector52 quad) (-> self control trans quad))
-  (+! (-> self control unknown-vector52 y) -819200.0)
+  (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+  (+! (-> self control last-grounded-position y) (meters -200.0))
   (set! (-> self align) (new 'process 'align-control self))
   (set! (-> self sidekick) (process-spawn sidekick :init init-sidekick :from *16k-dead-pool* :to self))
   (set! (-> self manipy) (the-as (pointer manipy) #f))

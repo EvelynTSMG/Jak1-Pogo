@@ -635,7 +635,7 @@
 
 (defbehavior fishermans-boat-leave-dock? fishermans-boat ()
   (let ((gp-0 #f))
-    (when (and (< (vector-vector-distance (target-pos 0) (-> self rbody position)) 6144.0)
+    (when (and (< (vector-vector-distance (target-pos 0) (-> self rbody position)) (meters 3.0)) ;mod: Increased range 1.5 -> 3.0 so it's not difficult to enter
                (or (task-complete? *game-info* (game-task jungle-fishgame)) (and *cheat-mode* (cpad-hold? 0 l3)))
                (not (level-hint-displayed?))
                (time-elapsed? (-> self state-time) (seconds 3))

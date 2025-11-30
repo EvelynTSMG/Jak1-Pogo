@@ -664,6 +664,7 @@
                         (= v1-2 (progress-screen game-settings))
                         (= v1-2 (progress-screen graphic-settings))
                         (= v1-2 (progress-screen sound-settings))
+                        (= v1-2 (progress-screen mod-settings))
                         (= v1-2 (progress-screen title))
                         (= v1-2 (progress-screen settings-title))
                         (= v1-2 (progress-screen camera-options))

@@ -999,7 +999,7 @@
       (process-entity-status! self (entity-perm-status dead) #t)
       (stop! (-> self sound))
 
-      (when (not (-> *pc-settings* skip-cells?))
+      (when (not (-> *pc-settings* mod skip-cells?))
         (while (handle->process (-> *game-info* other-camera-handle))
           (format #t
                   "WARNING: fuel-cell stall ~D ~A ~A~%"
@@ -1032,7 +1032,7 @@
 
       (send-event *target* 'get-pickup (-> self fact pickup-type) (-> self fact pickup-amount))
 
-      (when (not (-> *pc-settings* skip-cells?))
+      (when (not (-> *pc-settings* mod skip-cells?))
         (set! (-> self draw bounds w) 32768.0)
         (logior! (-> self skel status) (janim-status inited))
         (send-event *target* 'blend-shape #t)
@@ -1044,7 +1044,7 @@
 
       (auto-save-command 'auto-save 0 0 *default-pool*)
 
-      (when (not (-> *pc-settings* skip-cells?))
+      (when (not (-> *pc-settings* mod skip-cells?))
         (ja-play-spooled-anim (-> self victory-anim)
                               (the-as art-joint-anim fuel-cell-idle-ja)
                               (the-as art-joint-anim #f)
@@ -1055,7 +1055,7 @@
         (send-event *target* 'blend-shape #f)
       )
 
-      (when (or (not (-> *pc-settings* skip-cells?)) (and (not flutflut?) (not racer?)))
+      (when (or (not (-> *pc-settings* mod skip-cells?)) (and (not flutflut?) (not racer?)))
         (send-event *target* 'end-mode)
       )
 

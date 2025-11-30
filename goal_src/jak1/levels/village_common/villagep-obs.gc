@@ -524,9 +524,7 @@
                    (process-entity-status! self (entity-perm-status bit-3) #f)
                    (process-entity-status! self (entity-perm-status dead) #t)
                    (deactivate self)))))
-            (while (and *target*
-                        (logtest? (-> *target* control unknown-surface00 flags) (surface-flags jump))
-                        (not (logtest? (-> *target* control status) (cshape-moving-flags onsurf))))
+            (while (and *target* (target-in-air?-mod))
               (suspend))
             (set-time! (-> self state-time))
             (process-grab? *target*)

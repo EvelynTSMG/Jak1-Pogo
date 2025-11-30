@@ -585,7 +585,6 @@
                                                                (flag "Letterbox" #f ,(dm-lambda-boolean-flag (-> *pc-settings* letterbox?)))
                                                                (flag "Skip movies" #f ,(dm-lambda-boolean-flag (-> *pc-settings* skip-movies?)))
                                                                (flag "Money starburst" #f ,(dm-lambda-boolean-flag (-> *pc-settings* money-starburst?)))
-                                                               (flag "Skip cell cutscenes" #f ,(dm-lambda-boolean-flag (-> *pc-settings* skip-cells?)))
                                                                (flag "Subtitles" #f ,(dm-lambda-boolean-flag (-> *pc-settings* subtitles?)))
                                                                (flag "Hinttitles" #f ,(dm-lambda-boolean-flag (-> *pc-settings* hinttitles?)))
                                                                (menu "Subtitle speaker"

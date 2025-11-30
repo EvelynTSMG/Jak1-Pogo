@@ -41,7 +41,8 @@
    (fp-hud              handle)
    (no-load-wait        time-frame)
    (no-look-around-wait time-frame)
-   (burn-proc           handle))
+   (burn-proc           handle)
+   (last-roll-input     time-frame))
   (:methods
    (find-edge-grabs! (_type_ collide-cache) object))
   (:states

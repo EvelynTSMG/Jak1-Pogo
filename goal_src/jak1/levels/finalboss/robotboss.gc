@@ -43,9 +43,7 @@
   (let ((f0-0 (ja-aframe-num 0)))
     (cond
       ((or (not (ja-group? arg2)) (< f0-0 arg0) (< arg1 f0-0)) (robotboss-cut-cam-exit))
-      ((or (and (logtest? (-> *target* control unknown-surface00 flags) (surface-flags jump))
-                (not (logtest? (-> *target* control status) (cshape-moving-flags onsurf))))
-           (-> self skip-cut))
+      ((or (target-in-air?) (-> self skip-cut))
        (set! (-> self skip-cut) #t))
       (else
        (logior! (-> self skel status) (janim-status inited))

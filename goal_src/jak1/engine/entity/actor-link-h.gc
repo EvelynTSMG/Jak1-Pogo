@@ -140,7 +140,8 @@
   0)
 
 (defmethod apply-all ((this actor-link-info) (arg0 (function entity-actor object object)) (arg1 object))
-  "Apply to all entities.  Starts at the back and hits everyone, including this object."
+  "Apply to all entities.  Starts at the back and hits everyone, including this object.
+   If the function returns truthy, stop iterating."
   ;; start at us (next may give us #f here, so can't do that.)
   (let ((s4-0 (-> this process entity)))
     ;; while there is a prev...

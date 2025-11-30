@@ -256,9 +256,48 @@
     (set! (-> font-ctxt origin y) orig-y)
     (set! (-> font-ctxt width) orig-width)
     (set! (-> font-ctxt height) orig-height)
-    (set! (-> font-ctxt scale) orig-scale))
-  0
-  (none))
+    (set! (-> font-ctxt scale) orig-scale)
+  )
+
+  (none)
+)
+
+(defun print-game-text-scaled-lh ((str string) (scale float) (font-ctx font-context) (alpha int) (line-height int))
+  "Print text, with a given scaling and line height"
+  (let (
+        (orig-width (-> font-ctx width))
+        (orig-height (-> font-ctx height))
+        (orig-x (-> font-ctx origin x))
+        (orig-y (-> font-ctx origin y))
+        (orig-scale (-> font-ctx scale))
+      )
+    (let (
+          (scaled-width (* (-> font-ctx width) scale))
+          (scaled-height (* (-> font-ctx height) scale))
+          (scaled-line-height (the int (* (the float line-height) scale)))
+        )
+      (if (logtest? (-> font-ctx flags) (font-flags middle))
+        (+! (-> font-ctx origin x) (* 0.5 (- orig-width scaled-width)))
+      )
+      (if (logtest? (-> font-ctx flags) (font-flags middle-vert))
+        ;; this code is really weird. it does the divide with an int, but fails
+        ;; to convert it back to a float before adding??
+        (+! (-> font-ctx origin y) (the-as float (/ (the int (- orig-height scaled-height)) 2)))
+      )
+      (set! (-> font-ctx scale) (* orig-scale scale))
+      (set! (-> font-ctx width) scaled-width)
+      (set! (-> font-ctx height) scaled-height)
+      (print-game-text str font-ctx #f alpha scaled-line-height)
+    )
+    (set! (-> font-ctx origin x) orig-x)
+    (set! (-> font-ctx origin y) orig-y)
+    (set! (-> font-ctx width) orig-width)
+    (set! (-> font-ctx height) orig-height)
+    (set! (-> font-ctx scale) orig-scale)
+  )
+
+  (none)
+)
 
 (defun print-game-text ((str string) (font-ctxt font-context) (no-draw symbol) (alpha int) (line-height int))
   "Print text. Not worth commenting until we get stack variables in lets, I think"

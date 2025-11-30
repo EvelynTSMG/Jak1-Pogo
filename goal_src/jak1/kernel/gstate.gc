@@ -415,6 +415,11 @@ It type checks the arguments for the entry function.
     ,@(apply-i (lambda (x i) `(set! (-> event-data param ,i) (the-as uint ,x))) params)
     (send-event-function ,proc event-data)))
 
+(defmacro try-send-event (e-actor msg &key (from (with-pp pp)) &rest params)
+  "Try to send an event to (-> e-actor extra process) if e-actor exists"
+  `(send-event (the-as process-tree (and ,e-actor (-> ,e-actor extra process))) ,msg ,from ,@params)
+)
+
 (defun looping-code ()
   "Loop."
   (loop

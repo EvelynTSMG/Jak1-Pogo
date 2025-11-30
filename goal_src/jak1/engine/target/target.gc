@@ -84,17 +84,20 @@
   (if (and (cpad-pressed? (-> self control unknown-cpad-info00 number) circle) (can-feet?)) (go target-attack-air #f))
   (when (= arg0 'target-eco-powerup)
     ;; og:preserve-this - High FPS Fix
-    (if (and (recently-pressed? x)
-             (not (logtest? (-> self water flags) (water-flags wt09)))
+    (when (and (not (logtest? (-> self water flags) (water-flags wt09)))
              (not (time-elapsed? (-> self state-time) (seconds 3)))
              (not (logtest? (-> self state-flags) (state-flags prevent-jump))))
+      ; Fix random fall damage
+      (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+      (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
       (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))))
   (if (logtest? (-> self control status) (cshape-moving-flags onsurf)) (go target-hit-ground #f))
-  (when (if (and (< (target-move-dist (-> *TARGET-bank* stuck-time)) (-> *TARGET-bank* stuck-distance))
-                 (>= arg1 0)
-                 (time-elapsed? (-> self state-time) arg1)
-                 (not (and *cheat-mode* (cpad-hold? (-> self control unknown-cpad-info00 number) r2))))
-          #t)
+  (when (and
+        (< (target-move-dist (-> *TARGET-bank* stuck-time)) (-> *TARGET-bank* stuck-distance))
+        (>= arg1 0)
+        (time-elapsed? (-> self state-time) arg1)
+        (not (and *cheat-mode* (cpad-hold? (-> self control unknown-cpad-info00 number) r2)))
+      )
     (logior! (-> self control status) (cshape-moving-flags onsurf))
     (go target-hit-ground 'stuck))
   (if (!= (-> self state-time) (current-time)) (slide-down-test))
@@ -231,6 +234,12 @@
   :trans
     (behavior ()
       ((-> self state-hook))
+      ;; og:preserve-this - High FPS Fix
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
       (if (logtest? (-> self water flags) (water-flags wt10)) (go target-wade-stance))
       (when (= (-> self control ground-pat material) (pat-material ice))
         (set! (-> self control unknown-float81) 0.0)
@@ -244,9 +253,6 @@
         (set! (-> self control unknown-float81) 0.0)
         (remove-exit)
         (go target-duck-stance))
-      ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
-        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
       ;; og:preserve-this - High FPS Fix
       (if (and (recently-pressed? circle) (can-feet?)) (go target-attack))
       (if (can-hands? #t) (go target-running-attack))
@@ -389,10 +395,29 @@
         (remove-exit)
         (go target-ice-walk))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? l1 r1)
-               (and (time-elapsed? (-> *TARGET-bank* wheel-timeout) (-> self control unknown-dword30))
-                    (and (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0) (can-wheel?))))
-        (go target-wheel))
+      (when (and
+            (neq? (-> *pc-settings* mod rolljump-ability) 'never)
+            (or
+              (and
+                (= (-> *pc-settings* mod rolljump-ability) 'buffered)
+                (-> self last-roll-input)
+                (not (time-elapsed? (-> self last-roll-input) (-> *TARGET-bank* wheel-buffer-time)))
+              )
+              (recently-pressed? l1 r1)
+            )
+            (time-elapsed? (-> *TARGET-bank* wheel-timeout) (-> self control roll-done-time))
+            (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
+            (can-wheel?)
+          )
+        (set! (-> self last-roll-input) (the-as time-frame #f))
+        (go target-wheel)
+      )
+      ;; og:preserve-this - High FPS Fix
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
       (when (and (cpad-hold? (-> self control unknown-cpad-info00 number) l1 r1) (can-duck?))
         (target-effect-exit)
         (remove-exit)
@@ -401,9 +426,6 @@
         (target-effect-exit)
         (remove-exit)
         (go target-stance))
-      ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
-        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
       ;; og:preserve-this - High FPS Fix
       (if (and (recently-pressed? circle) (can-feet?)) (go target-attack))
       (if (can-hands? #t) (go target-running-attack))
@@ -606,8 +628,12 @@
     (behavior ()
       ((-> self state-hook))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
-        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
+      (when (and (can-jump? #f))
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))
+      )
       (if (and (cpad-pressed? (-> self control unknown-cpad-info00 number) circle) (can-feet?)) (go target-attack))
       (if (can-hands? #t) (go target-running-attack))
       (if (and (not (logtest? (-> self control status) (cshape-moving-flags onsurf)))
@@ -755,10 +781,15 @@
         (go target-stance))
       (if (move-legs?) (go target-duck-walk))
       ;; og:preserve-this - High FPS Fix
-      (when (and (recently-pressed? x) (can-jump? #f))
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
         (if (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
           (go target-high-jump (-> *TARGET-bank* duck-jump-height-min) (-> *TARGET-bank* duck-jump-height-max) 'duck)
-          (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))))
+          (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))
+        )
+      )
       (if (and (can-hands? #t) (can-exit-duck?))
         (go target-attack-uppercut (-> *TARGET-bank* attack-jump-height-min) (-> *TARGET-bank* attack-jump-height-max)))
       (fall-test)
@@ -799,6 +830,14 @@
   :trans
     (behavior ()
       ((-> self state-hook))
+      ;; og:preserve-this - High FPS Fix
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (if (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
+          (go target-high-jump (-> *TARGET-bank* duck-jump-height-min) (-> *TARGET-bank* duck-jump-height-max) 'duck)
+          (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))))
       (if (and (or (not (cpad-hold? (-> self control unknown-cpad-info00 number) l1 r1))
                    (logtest? (-> self state-flags) (state-flags prevent-duck))
                    (and (logtest? (-> self water flags) (water-flags wt10))
@@ -806,11 +845,6 @@
                (can-exit-duck?))
         (go target-walk))
       (if (not (move-legs?)) (go target-duck-stance))
-      ;; og:preserve-this - High FPS Fix
-      (when (and (recently-pressed? x) (can-jump? #f))
-        (if (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
-          (go target-high-jump (-> *TARGET-bank* duck-jump-height-min) (-> *TARGET-bank* duck-jump-height-max) 'duck)
-          (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))))
       (if (and (can-hands? #t) (can-exit-duck?))
         (go target-attack-uppercut (-> *TARGET-bank* attack-jump-height-min) (-> *TARGET-bank* attack-jump-height-max)))
       (fall-test)
@@ -867,12 +901,20 @@
             (fmax (-> self control unknown-float123)
                   (* 0.003921569 (the float (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) abutton (abutton-idx x)))))) ;; og:preserve-this abutton indexing
       (target-falling-trans #f (the-as time-frame (if (ja-group? eichar-jump-loop-ja) 15 -1)))
-      (if (and (cpad-pressed? (-> self control unknown-cpad-info00 number) x)
-               (< (vector-dot (-> self control dynam gravity-normal) (-> self control transv)) 12288.0)
-               (and (< -61440.0 (vector-dot (-> self control dynam gravity-normal) (-> self control transv)))
-                    (not (logtest? (-> self water flags) (water-flags wt09)))
-                    (not (logtest? (-> self state-flags) (state-flags prevent-jump)))))
-        (go target-double-jump (-> *TARGET-bank* double-jump-height-min) (-> *TARGET-bank* double-jump-height-max)))
+      (if (and
+            (cpad-pressed? (-> self control unknown-cpad-info00 number) x)
+            (or
+              (= (-> *pc-settings* mod doublejump-ability) 'always)
+              (and
+                (< (vector-dot (-> self control dynam gravity-normal) (-> self control transv)) 12288.0)
+                (< -61440.0 (vector-dot (-> self control dynam gravity-normal) (-> self control transv)))
+                (not (logtest? (-> self water flags) (water-flags wt09)))
+                (not (logtest? (-> self state-flags) (state-flags prevent-jump)))
+              )
+            )
+          )
+        (go target-double-jump (-> *TARGET-bank* double-jump-height-min) (-> *TARGET-bank* double-jump-height-max))
+      )
       (if (and (cpad-pressed? (-> self control unknown-cpad-info00 number) square)
                (< (vector-dot (-> self control dynam gravity-normal) (-> self control transv)) 26624.0)
                (and (< -61440.0 (vector-dot (-> self control dynam gravity-normal) (-> self control transv)))
@@ -883,7 +925,10 @@
             (the-as float 65502.96)
             (the-as float -163840.0)
             (the-as float (if (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0) 0.0 68812.8))))
-      (mod-var-jump #t #t (cpad-hold? (-> self control unknown-cpad-info00 number) x) (-> self control transv))
+      (if (recently-pressed? l1 r1)
+        (set-time! (-> self last-roll-input))
+      )
+      (mod-var-jump #t #t (or (-> *pc-settings* mod always-max-jumps?) (cpad-hold? (-> self control unknown-cpad-info00 number) x)) (-> self control transv))
       (slide-down-test)
       (seek! (-> self control unknown-float122)
              (fmax 0.0 (fmin 1.0 (* 0.000048828126 (+ -10240.0 (-> self control unknown-float01)))))
@@ -966,7 +1011,7 @@
             (the-as float -122880.0)
             (the-as float (if (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0) 0.0 68812.8))))
       (if (!= (-> self state-time) (current-time))
-        (mod-var-jump #t #t (cpad-hold? (-> self control unknown-cpad-info00 number) x) (-> self control transv)))
+        (mod-var-jump #t #t (or (-> *pc-settings* mod always-max-jumps?) (cpad-hold? (-> self control unknown-cpad-info00 number) x)) (-> self control transv)))
       (seek! (-> self control unknown-float122)
              (fmax 0.0 (fmin 1.0 (* 0.000048828126 (+ -10240.0 (-> self control unknown-float01)))))
              (seconds-per-frame)))
@@ -1022,7 +1067,7 @@
             (the-as float 33775.48)
             (the-as float -122880.0)
             (the-as float (if (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0) 0.0 68812.8))))
-      (mod-var-jump #t #t (cpad-hold? (-> self control unknown-cpad-info00 number) x) (-> self control transv))
+      (mod-var-jump #t #t (or (-> *pc-settings* mod always-max-jumps?) (cpad-hold? (-> self control unknown-cpad-info00 number) x)) (-> self control transv))
       (seek! (-> self control unknown-float122)
              (fmax 0.0 (fmin 1.0 (* 0.00012207031 (+ -2048.0 (-> self control unknown-float01)))))
              (seconds-per-frame)))
@@ -1160,7 +1205,7 @@
          (cpad-set-buzz! (-> *cpad-list* cpads 0) 1 255 (seconds 0.3)))
         (else
          (let ((f0-1 (vector-dot (-> self control dynam gravity-normal)
-                                 (vector-! (new 'stack-no-clear 'vector) (-> self control unknown-vector52) (-> self control trans)))))
+                                 (vector-! (new 'stack-no-clear 'vector) (-> self control last-grounded-position) (-> self control trans)))))
            (if (and (< (-> *TARGET-bank* fall-far) f0-1) (not (logtest? (-> self control status) (cshape-moving-flags on-water))))
              (go target-hit-ground-hard f0-1)))))
       (cond
@@ -1182,7 +1227,27 @@
   :trans
     (behavior ()
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
+      (when (and
+            (neq? (-> *pc-settings* mod rolljump-ability) 'never)
+            (or
+              (recently-pressed? l1 r1)
+              (and
+                (= (-> *pc-settings* mod rolljump-ability) 'buffered)
+                (-> self last-roll-input)
+                (not (time-elapsed? (-> self last-roll-input) (-> *TARGET-bank* wheel-buffer-time)))
+              )
+            )
+            (time-elapsed? (-> *TARGET-bank* wheel-timeout) (-> self control roll-done-time))
+            (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
+            (can-wheel?)
+          )
+        (set! (-> self last-roll-input) (the-as time-frame #f))
+        (go target-wheel)
+      )
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
         (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
       (if (and (not (can-exit-duck?)) (can-duck?)) (go target-duck-stance))
       (when (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
@@ -1227,7 +1292,10 @@
           (cpad-set-buzz! (-> *cpad-list* cpads 0) 1 153 (seconds 0.1))
           (level-hint-spawn (text-id misty-eco-red-first-use) "sksp0072" (the-as entity #f) *entity-pool* (game-task none)))
         ;; og:preserve-this - High FPS Fix
-        (if (and (recently-pressed? x) (can-jump? #f))
+        (when (can-jump? #f)
+          ; Fix random fall damage
+          (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+          (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
           (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
         (suspend)
         (ja :num! (seek! max (-> self control unknown-surface01 align-speed))))
@@ -1313,7 +1381,7 @@
                          (-> *TARGET-bank* smack-surface-height)
                          (the-as process #f)
                          target-hit))
-        (if (and (cpad-pressed? (-> self control unknown-cpad-info00 number) x)
+        (if (and #t
                  (and (< 4096.0 (-> self control unknown-float01))
                       (or (time-elapsed? (-> self state-time) (seconds 0.1))
                           (not (logtest? (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) button0-abs 0) (pad-buttons square))))
@@ -1419,7 +1487,7 @@
                      (fmax 0.0
                            (- (-> *TARGET-bank* attack-jump-height-max)
                               (vector-dot (-> self control dynam gravity-normal)
-                                          (vector-! (new 'stack-no-clear 'vector) (-> self control trans) (-> self control unknown-vector52)))))))
+                                          (vector-! (new 'stack-no-clear 'vector) (-> self control trans) (-> self control last-grounded-position)))))))
              (let ((gp-2 (new-stack-vector0)))
                (let ((f0-8 (vector-dot (-> self control dynam gravity-normal) (-> self control transv))))
                  0.0
@@ -1431,7 +1499,7 @@
                            (vector-float*! (-> self control transv) (-> self control dynam gravity-normal) f2-7)
                            (vector-float*! gp-2 gp-2 (/ f0-9 f1-11)))))))))
       (set! (-> self control dynam gravity-length) 122880.0)
-      (set! (-> self control unknown-vector52 quad) (-> self control trans quad)))
+      (set! (-> self control last-grounded-position quad) (-> self control trans quad)))
   :exit
     (behavior ()
       (set! (-> self control dynam gravity-max) (-> self control unknown-dynamics00 gravity-max))
@@ -1550,7 +1618,7 @@
                (ja-group? eichar-attack-uppercut-ja)
                (>= (ja-aframe-num 0) 12.0))
         (go target-attack-air 'uppercut))
-      (mod-var-jump #t #t (cpad-hold? (-> self control unknown-cpad-info00 number) x) (-> self control transv))
+      (mod-var-jump #t #t (or (-> *pc-settings* mod always-max-jumps?) (cpad-hold? (-> self control unknown-cpad-info00 number) x)) (-> self control transv))
       (when (and (= (-> self fact eco-type) (pickup-type eco-red)) (>= (-> self fact eco-level) 1.0))
         (effect-control-method-10 (-> self skel effect) 'group-red-eco-spinkick (ja-frame-num 0) 23)
         (cpad-set-buzz! (-> *cpad-list* cpads 0) 1 153 (seconds 0.1)))
@@ -1741,7 +1809,7 @@
   :enter
     (behavior ((arg0 symbol))
       (let ((f0-1 (vector-dot (-> self control dynam gravity-normal)
-                              (vector-! (new 'stack-no-clear 'vector) (-> self control unknown-vector111) (-> self control trans)))))
+                              (vector-! (new 'stack-no-clear 'vector) (-> self control last-grounded-position) (-> self control trans)))))
         (if (< (-> *TARGET-bank* fall-far) f0-1) (go target-hit-ground-hard f0-1)))
       (target-land-effect)
       (cpad-set-buzz! (-> *cpad-list* cpads 0) 1 255 (seconds 0.1))
@@ -1795,7 +1863,7 @@
     (behavior ()
       (when (!= (-> self next-state name) 'target-wheel)
         (set! (-> self control unknown-int50) 0)
-        (set-time! (-> self control unknown-dword30)))
+        (set-time! (-> self control roll-done-time)))
       (target-exit))
   :code
     (behavior ()
@@ -1830,7 +1898,7 @@
             (ja :num! (seek!))
             (set! f30-0 (* f30-0 (fmin 1.0 (-> self control unknown-float140))))))
         (if (and (or (not (time-elapsed? (the-as time-frame gp-0) (-> *TARGET-bank* wheel-jump-pre-window)))
-                     (cpad-pressed? (-> self control unknown-cpad-info00 number) x))
+                     #t)
                  (can-jump? 'target-wheel-flip))
           (go target-wheel-flip (-> *TARGET-bank* wheel-flip-height) (-> *TARGET-bank* wheel-flip-dist))))
       (set-time! (-> self state-hook-time))
@@ -1841,7 +1909,7 @@
                  (set! (-> self state-hook) (the-as (function none :behavior target) nothing)))
                 (else
                  ;; og:preserve-this - High FPS Fix
-                 (if (and (recently-pressed? x) (can-jump? 'target-wheel-flip))
+                 (if (can-jump? 'target-wheel-flip)
                    (go target-wheel-flip (-> *TARGET-bank* wheel-flip-height) (-> *TARGET-bank* wheel-flip-dist)))))
               (none)))
       (go target-duck-stance))
@@ -1867,6 +1935,9 @@
         (go target-attack-air #f)))
   :code
     (behavior ((arg0 float) (arg1 float))
+      (if (recently-pressed? l1 r1)
+        (set-time! (-> self last-roll-input))
+      )
       (ja-channel-push! 1 (seconds 0.04))
       (ja :group! eichar-wheel-flip-ja :num! min)
       (let ((f30-0 1.0))
@@ -1892,6 +1963,9 @@
             (set! (-> s4-1 y) 0.0)
             (vector-matrix*! (-> self control unknown-vector120) s4-1 (-> self control unknown-matrix01)))
           (suspend)
+          (if (recently-pressed? l1 r1)
+            (set-time! (-> self last-roll-input))
+          )
           (ja :num! (seek!))
           (set! f30-0 (* f30-0 (fmin 1.0 (-> self control unknown-float140))))))
       (set-time! (-> self state-time))
@@ -1911,18 +1985,47 @@
                       (vector-float*! (-> self control transv) (-> self control dynam gravity-normal) f30-1)
                       (vector-float*! gp-2 gp-2 (/ f1-7 f0-21)))))
         (suspend)
+        (if (recently-pressed? l1 r1)
+          (set-time! (-> self last-roll-input))
+        )
         (if (ja-group? eichar-jump-loop-ja) (ja :num! (loop!)) (ja :num-func num-func-identity :frame-num max)))
       (target-land-effect)
       (set-time! (-> self state-hook-time))
-      (set! (-> self state-hook)
-            (lambda :behavior target ()
-              (cond
-                ((time-elapsed? (-> self state-hook-time) (seconds 0.1))
-                 (set! (-> self state-hook) (the-as (function none :behavior target) nothing)))
-                (else
-                 ;; og:preserve-this - High FPS Fix
-                 (if (and (recently-pressed? x) (can-jump? #f))
-                   (go target-high-jump (-> *TARGET-bank* flip-jump-height-min) (-> *TARGET-bank* flip-jump-height-max) 'flip))))
-              (none)))
+      (set! (-> self state-hook) (lambda :behavior target ()
+        (cond
+          ((time-elapsed? (-> self state-hook-time) (seconds 0.1))
+            (set! (-> self state-hook) (the-as (function none :behavior target) nothing))
+          )
+          (else
+            (if (recently-pressed? l1 r1)
+              (set-time! (-> self last-roll-input))
+            )
+
+            ; Allow rolling out of a rolljump, since we can't punch
+            (when (and
+                  (neq? (-> *pc-settings* mod rolljump-ability) 'never)
+                  (or
+                    (and
+                      (= (-> *pc-settings* mod rolljump-ability) 'buffered)
+                      (-> self last-roll-input)
+                      (not (time-elapsed? (-> self last-roll-input) (-> *TARGET-bank* wheel-buffer-time)))
+                    )
+                    (recently-pressed? l1 r1)
+                  )
+                  ;(time-elapsed? (-> *TARGET-bank* wheel-timeout) (-> self control roll-done-time))
+                  (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0)
+                  (can-wheel?)
+                )
+              (set! (-> self last-roll-input) (the-as time-frame #f))
+              (go target-wheel)
+            )
+            ;; og:preserve-this - High FPS Fix
+            (if (can-jump? #f)
+              (go target-high-jump (-> *TARGET-bank* flip-jump-height-min) (-> *TARGET-bank* flip-jump-height-max) 'flip))
+          )
+        )
+        (none)
+        )
+      )
       (if (ja-group? eichar-jump-loop-ja) (go target-hit-ground #f) (go target-stance)))
   :post target-post)

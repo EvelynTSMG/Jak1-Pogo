@@ -730,6 +730,7 @@
       (case message
         (('end-mode) (go target-falling 'target-edge-grab))
         (else (target-standard-event-handler proc argc message block))))
+
   :enter
     (behavior ()
       (set-time! (-> self state-time))
@@ -739,30 +740,38 @@
       (set! (-> self control unknown-vector102 quad) (-> self control transv quad))
       (set! (-> self control transv quad) (the-as uint128 0))
       (send-event *camera* 'ease-in))
+
   :exit
     (behavior ()
       (when (logtest? (-> self control root-prim prim-core action) (collide-action edgegrab-cam))
         (logclear! (-> self control root-prim prim-core action) (collide-action edgegrab-active edgegrab-cam))
         (send-event *camera* 'damp-up)))
+
   :trans
     (behavior ()
-      (when (and (time-elapsed? (-> self state-time) (seconds 0.2))
-                 ;; og:preserve-this - High FPS Fix
-                 (recently-pressed? x)
-                 (not (logtest? (-> self state-flags) (state-flags prevent-jump))))
-        (cond
-          ((or (< -0.2 (local-pad-angle)) (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0))
-           (let ((a1-2 (new 'stack-no-clear 'collide-using-spheres-params)))
-             (set! (-> a1-2 spheres) (-> *collide-edge-work* world-player-leap-up-spheres))
-             (set! (-> a1-2 num-spheres) (the-as uint 6))
-             (set! (-> a1-2 collide-with) (-> self control root-prim collide-with))
-             (set! (-> a1-2 proc) #f)
-             (set! (-> a1-2 ignore-pat) (new 'static 'pat-surface :noentity #x1))
-             (set! (-> a1-2 solid-only) #t)
-             (when (not (fill-and-probe-using-spheres *collide-cache* a1-2))
-               (remove-exit)
-               (go target-edge-grab-jump (-> *TARGET-bank* edge-grab-jump-height-min) (-> *TARGET-bank* edge-grab-jump-height-max)))))
-          (else (remove-exit) (go target-edge-grab-off)))))
+      (let ((collide-params (new 'stack-no-clear 'collide-using-spheres-params)))
+        (set! (-> collide-params spheres) (-> *collide-edge-work* world-player-leap-up-spheres))
+        (set! (-> collide-params num-spheres) (the-as uint 6))
+        (set! (-> collide-params collide-with) (-> self control root-prim collide-with))
+        (set! (-> collide-params proc) #f)
+        (set! (-> collide-params ignore-pat) (new 'static 'pat-surface :noentity #x1))
+        (set! (-> collide-params solid-only) #t)
+
+        (when (and
+              (time-elapsed? (-> self state-time) (seconds 0.2))
+              (not (logtest? (-> self state-flags) (state-flags prevent-jump)))
+            )
+          ; We're guaranteed to leave at this point
+          (remove-exit)
+
+          (if (not (fill-and-probe-using-spheres *collide-cache* collide-params))
+            (go target-edge-grab-jump (-> *TARGET-bank* edge-grab-jump-height-min) (-> *TARGET-bank* edge-grab-jump-height-max))
+            (go target-edge-grab-off)
+          )
+        )
+      )
+    )
+
   :code
     (behavior ()
       (target-compute-edge)
@@ -1036,9 +1045,11 @@
                   (ja-aframe (the-as float (if (= arg1 (-> *FACT-bank* eco-full-inc)) 0.0 6.0)) 0))
       (until (ja-done? 0)
         ;; og:preserve-this - High FPS Fix
-        (if (and (recently-pressed? x)
-                 (not (logtest? (-> self water flags) (water-flags wt09)))
+        (when (and (not (logtest? (-> self water flags) (water-flags wt09)))
                  (not (logtest? (-> self state-flags) (state-flags prevent-jump))))
+          ; Fix random fall damage
+          (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+          (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
           (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
         (if (and (cpad-pressed? (-> self control unknown-cpad-info00 number) circle) (can-feet?)) (go target-attack-air #f))
         (when (can-hands? #f)
@@ -1077,8 +1088,12 @@
       (if (and (cpad-hold? (-> self control unknown-cpad-info00 number) l1 r1) (can-duck?)) (go target-duck-stance))
       (if (!= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0) (go target-wade-walk))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
-        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))
+      )
       (when (and (cpad-pressed? (-> self control unknown-cpad-info00 number) circle) (can-feet?))
         (sound-play "swim-stroke")
         (create-splash (-> self water) (the-as float 1.4) (-> self control trans) 0 (-> self control transv))
@@ -1105,8 +1120,12 @@
       (if (= (-> *cpad-list* cpads (-> self control unknown-cpad-info00 number) stick0-speed) 0.0) (go target-wade-stance))
       (if (and (cpad-hold? (-> self control unknown-cpad-info00 number) l1 r1) (can-duck?)) (go target-duck-walk))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f))
-        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f)))
+      (when (can-jump? #f)
+        ; Fix random fall damage
+        (set! (-> self control last-grounded-position quad) (-> self control trans quad))
+        (set! (-> self control unknown-vector111 quad) (-> self control trans quad))
+        (go target-jump (-> *TARGET-bank* jump-height-min) (-> *TARGET-bank* jump-height-max) (the-as surface #f))
+      )
       (when (and (cpad-pressed? (-> self control unknown-cpad-info00 number) circle) (can-feet?))
         (sound-play "swim-stroke")
         (create-splash (-> self water) (the-as float 1.4) (-> self control trans) 0 (-> self control transv))
@@ -1252,7 +1271,7 @@
       (when (and (not (logtest? (-> self water flags) (water-flags wt11))) (time-elapsed? (-> self state-time) (seconds 0.1)))
         (if (logtest? (-> self water flags) (water-flags wt10)) (go target-wade-stance) (go target-stance)))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f) (time-elapsed? (-> self water enter-swim-time) (seconds 0.1)))
+      (if (and (can-jump? #f) (time-elapsed? (-> self water enter-swim-time) (seconds 0.1)))
         (go target-swim-jump (-> *TARGET-bank* swim-jump-height-min) (-> *TARGET-bank* swim-jump-height-max)))
       ;; og:preserve-this - High FPS Fix
       (if (and (recently-pressed? square) (< (-> *TARGET-bank* min-dive-depth) (target-height-above-ground)))
@@ -1310,7 +1329,7 @@
       (when (and (not (logtest? (-> self water flags) (water-flags wt11))) (time-elapsed? (-> self water swim-time) (seconds 0.1)))
         (if (logtest? (-> self water flags) (water-flags wt10)) (go target-wade-stance) (go target-stance)))
       ;; og:preserve-this - High FPS Fix
-      (if (and (recently-pressed? x) (can-jump? #f) (time-elapsed? (-> self water enter-swim-time) (seconds 0.1)))
+      (if (and (can-jump? #f) (time-elapsed? (-> self water enter-swim-time) (seconds 0.1)))
         (go target-swim-jump (-> *TARGET-bank* swim-jump-height-min) (-> *TARGET-bank* swim-jump-height-max)))
       ;; og:preserve-this - High FPS Fix
       (if (and (recently-pressed? square) (< (-> *TARGET-bank* min-dive-depth) (target-height-above-ground)))
@@ -1645,7 +1664,7 @@
             (until (time-elapsed? sv-32 arg1)
               (let ((s4-0 (ppointer->process (-> self parent))))
                 (cond
-                  ((and sv-44 (< (- (-> (the-as target s4-0) control trans y) (-> (the-as target s4-0) control unknown-vector52 y)) arg2))
+                  ((and sv-44 (< (- (-> (the-as target s4-0) control trans y) (-> (the-as target s4-0) control last-grounded-position y)) arg2))
                    (vector-xz-normalize! (-> (the-as target s4-0) control transv) (the-as float 0.0))
                    ;; og:preserve-this PAL patch here
                    (when (< (vector-vector-xz-distance (-> (the-as target s4-0) control trans) sv-40) 20480.0)

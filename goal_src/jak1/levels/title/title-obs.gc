@@ -285,34 +285,55 @@
 (defstate idle (logo)
   :virtual #t
   :exit
-    (-> (method-of-type logo startup)
-        exit)
+    (-> (method-of-type logo startup) exit)
+
   :trans
-    (-> (method-of-type logo startup)
-        trans)
+    (-> (method-of-type logo startup) trans)
+
   :code
     (behavior ()
       (loop
         (set! (-> self anim) (-> self next-anim))
         (if (not (handle->process (-> self camera)))
           (set! (-> self camera)
-                (ppointer->handle (process-spawn othercam (handle->process (-> self camera-anim)) 4 #t 'logo :to (handle->process (-> self camera-anim))))))
+            (ppointer->handle
+              (process-spawn othercam
+                (handle->process (-> self camera-anim))
+                4
+                #t
+                'logo
+                :to (handle->process (-> self camera-anim))
+              )
+            )
+          )
+        )
         (set! *spawn-actors* #f)
         (ja-channel-set! 1)
+
         ;; og:preserve-this PAL patch here
         (ja-no-eval :group! (-> self draw art-group data 8) :num! (seek!) :frame-num 0.0)
+
         (until (ja-done? 0)
           (logior! (-> self skel status) (janim-status spool))
           (suspend)
-          (if (not (paused?)) (ja :num! (seek!))))
+
+          (if (not (paused?))
+            (ja :num! (seek!))
+          )
+        )
+
         (set! *spawn-actors* #t)
-        (ja-play-spooled-anim (-> self anim)
-                              (the-as art-joint-anim #f)
-                              (the-as art-joint-anim #f)
-                              (the-as (function process-drawable symbol) false-func))))
-  :post
-    (-> (method-of-type logo startup)
-        post))
+        (ja-play-spooled-anim
+          (-> self anim)
+          (the-as art-joint-anim #f)
+          (the-as art-joint-anim #f)
+          (the-as (function process-drawable symbol) false-func)
+        )
+      )
+    )
+ 
+  :post (-> (method-of-type logo startup) post)
+)
 
 (defstate hidden (logo)
   :virtual #t
@@ -632,6 +653,17 @@
           (let ((v1-12 gp-0)) (set! (-> v1-12 width) (the float 352)))
           (let ((v1-13 gp-0)) (set! (-> v1-13 height) (the float 40)))
           (set! (-> gp-0 flags) (font-flags shadow kerning middle middle-vert large))
-          (print-game-text (lookup-text! *common-text* (text-id press-start) #f) gp-0 #f 128 22))))
+          (print-game-text (lookup-text! *common-text* (text-id press-start) #f) gp-0 #f 128 22)
+        )
+      )
+
+      (let ((ctx (new 'stack 'font-context *font-default-matrix* 507 5 0.0 (font-color pad-square) (font-flags shadow kerning))))
+        (set! (-> ctx flags) (font-flags shadow kerning right large))
+        (format (clear *temp-string*) (lookup-text! *common-text* (text-id check-mod-settings) #f))
+        (print-game-text-scaled-lh *temp-string* 0.7 ctx 128 30)
+      )
+    )
+  
   :code anim-loop
-  :post target-no-move-post)
+  :post target-no-move-post
+)

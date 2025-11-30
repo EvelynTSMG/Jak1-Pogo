@@ -609,6 +609,10 @@
       (stop! (-> self sound2)))
   :trans
     (behavior ()
+      (if (-> *pc-settings* mod help-with-gnawers?)
+        (logior! (-> self mask) (process-mask attackable))
+        (logclear! (-> self mask) (process-mask attackable))
+      )
       (if (and *target* (>= 81920.0 (vector-vector-distance (target-pos 0) (-> self root trans)))) (go gnawer-retreat-into-post)))
   :code
     (behavior ()
@@ -735,6 +739,10 @@
       (stop! (-> self sound)))
   :trans
     (behavior ()
+      (if (-> *pc-settings* mod help-with-gnawers?)
+        (logior! (-> self mask) (process-mask attackable))
+        (logclear! (-> self mask) (process-mask attackable))
+      )
       (+! (-> self route-dist) (* (-> self speed) (seconds-per-frame)))
       (if (gnawer-method-22 self (-> self route-dist)) (go gnawer-wait-to-run))
       (update! (-> self sound)))

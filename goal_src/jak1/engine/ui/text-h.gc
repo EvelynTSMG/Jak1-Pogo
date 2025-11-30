@@ -570,7 +570,6 @@
   (misc-options #x100f)
   (accessibility-options #x1010)
   (money-starburst #x1011)
-  (skip-cells #x1012)
   (ps2-options #x1020)
   (ps2-load-speed #x1021)
   (ps2-parts #x1022)
@@ -798,6 +797,53 @@
   (pad-circle #x2001)
   (pad-x #x2002)
   (pad-square #x2003)
+
+  ;; mod settings
+  (check-mod-settings #x1200)
+  (mod-settings #x1201)
+
+  (air-control #x1202)
+  (air-control-desc #x1203)
+  (air-control-low #x1220)
+  (air-control-low-desc #x1221)
+  (air-control-default #x1222)
+  (air-control-default-desc #x1223)
+  (air-control-high #x1224)
+  (air-control-high-desc #x1225)
+  
+  (double-jump-ability #x1204)
+  (double-jump-ability-desc #x1205)
+  (double-jump-ability-near-peak #x1240)
+  (double-jump-ability-near-peak-desc #x1241)
+  (double-jump-ability-always #x1242)
+  (double-jump-ability-always-desc #x1243)
+
+  (skip-cells #x1206)
+  (skip-cells-desc #x1207)
+
+  (max-jumps #x1208)
+  (max-jumps-desc #x1209)
+
+  (rolljump-ability #x120a)
+  (rolljump-ability-desc #x120b)
+  (rolljump-ability-never #x12a0)
+  (rolljump-ability-never-desc #x12a1)
+  (rolljump-ability-frame-perfect #x12a2)
+  (rolljump-ability-frame-perfect-desc #x12a3)
+  (rolljump-ability-buffered #x12a4)
+  (rolljump-ability-buffered-desc #x12a5)
+
+  (gnawing-lurkers-help #x120c)
+  (gnawing-lurkers-help-desc #x120d)
+
+  (mod-options-reset #x120e)
+  (mod-options-reset-desc #x120f)
+  (mod-options-reset-nevermind #x12e0)
+  (mod-options-reset-nevermind-desc #x12e1)
+  (mod-options-reset-default #x12e2)
+  (mod-options-reset-default-desc #x12e3)
+  (mod-options-reset-nightmare #x12e4)
+  (mod-options-reset-nightmare-desc #x12e5)
   ;; GAME-TEXT-ID ENUM ENDS
   )
 

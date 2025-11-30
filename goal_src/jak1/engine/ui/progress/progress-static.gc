@@ -77,29 +77,34 @@
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
 (define *options*
-  (new 'static
-       'boxed-array
-       :type
-       game-option
-       (new 'static
-            'game-option
-            :option-type (game-option-type menu)
-            :name (text-id game-options)
-            :scale #t
-            :param3 (game-option-menu game-settings))
-       (new 'static
-            'game-option
-            :option-type (game-option-type menu)
-            :name (text-id graphic-options)
-            :scale #t
-            :param3 (game-option-menu graphic-settings))
-       (new 'static
-            'game-option
-            :option-type (game-option-type menu)
-            :name (text-id sound-options)
-            :scale #t
-            :param3 (game-option-menu sound-settings))
-       (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
+  (new 'static 'boxed-array :type game-option
+    (new 'static 'game-option
+      :option-type (game-option-type menu)
+      :name (text-id game-options)
+      :scale #t
+      :param3 (game-option-menu game-settings)
+    )
+    (new 'static 'game-option
+      :option-type (game-option-type menu)
+      :name (text-id graphic-options)
+      :scale #t
+      :param3 (game-option-menu graphic-settings)
+    )
+    (new 'static 'game-option
+      :option-type (game-option-type menu)
+      :name (text-id sound-options)
+      :scale #t
+      :param3 (game-option-menu sound-settings)
+    )
+    (new 'static 'game-option
+      :option-type (game-option-type menu)
+      :name (text-id mod-settings)
+      :scale #t
+      :param3 (game-option-menu mod-settings)
+    )
+    (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)
+  )
+)
 
 (define *main-options-demo*
   (new 'static
@@ -200,14 +205,23 @@
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
 
 (define *sound-options*
-  (new 'static
-       'boxed-array
-       :type
-       game-option
+  (new 'static 'boxed-array :type game-option
        (new 'static 'game-option :name (text-id sfx-volume) :scale #t :param2 100.0)
        (new 'static 'game-option :name (text-id music-volume) :scale #t :param2 100.0)
        (new 'static 'game-option :name (text-id speech-volume) :scale #t :param2 100.0)
        (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)))
+
+
+(define *mod-options* (new 'static 'boxed-array :type game-option
+  (new 'static 'game-option :option-type (game-option-type air-control) :name (text-id air-control) :desc (text-id air-control-desc) :scale #t)
+  (new 'static 'game-option :option-type (game-option-type doublejump-ability) :name (text-id double-jump-ability) :desc (text-id double-jump-ability-desc) :scale #t)
+  (new 'static 'game-option :option-type (game-option-type rolljump-ability) :name (text-id rolljump-ability) :desc (text-id rolljump-ability-desc) :scale #t)
+  (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id max-jumps) :desc (text-id max-jumps-desc) :scale #t)
+  (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id skip-cells) :desc (text-id skip-cells-desc) :scale #t)
+  (new 'static 'game-option :option-type (game-option-type on-off) :name (text-id gnawing-lurkers-help) :desc (text-id gnawing-lurkers-help-desc) :scale #t)
+  (new 'static 'game-option :option-type (game-option-type mod-options-reset) :name (text-id mod-options-reset) :desc (text-id mod-options-reset-desc) :scale #t)
+  (new 'static 'game-option :option-type (game-option-type button) :name (text-id back) :scale #t)
+))
 
 (define *yes-no-options*
   (new 'static 'boxed-array :type game-option (new 'static 'game-option :option-type (game-option-type yes-no) :scale #f)))
@@ -256,7 +270,7 @@
 ;; maps options to a progress screen
 ;; the length matches with `(progress-screen max)`
 (define *options-remap*
-  (new 'static 'boxed-array :type (array game-option) :length 0 :allocated-length (#if (not PC_PORT) 35 68)))
+  (new 'static 'boxed-array :type (array game-option) :length 0 :allocated-length (#if (not PC_PORT) 35 69)))
 
 ;; added in PC port
 (defenum level-task-data-index

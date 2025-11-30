@@ -1,0 +1,14 @@
+;;-*-Lisp-*-
+(in-package goal)
+
+(defmacro target-in-air? ()
+  `(and
+    (logtest? (-> *target* control unknown-surface00 flags) (surface-flags jump))
+    (not (logtest? (-> *target* control status) (cshape-moving-flags onsurf)))
+  )
+)
+
+; Macro to allow jumping for certain checks
+(defmacro target-in-air?-mod ()
+  `(not (logtest? (-> *target* control status) (cshape-moving-flags onsurf)))
+)
