@@ -1273,6 +1273,10 @@
             (periscope-update-joints)
             (update-transforms! (-> self root))
 
+            (when (>= (meters 2.0) (vector-vector-distance s5-0 (-> *target* control trans)))
+              (set! (-> self player-touching-grips?) #t)
+            )
+
             ; If the player is in position to interact with us
             (when (and (-> self player-touching-grips?) (not (level-hint-displayed?)))
               (set! (-> self player-touching-grips?) #f) ; Reset for next frame
